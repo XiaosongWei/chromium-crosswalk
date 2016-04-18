@@ -22,6 +22,9 @@
 #include <android/bitmap.h>
 #include <android/native_window_jni.h>
 
+#include "content/renderer/renderer_blink_platform_impl.h"
+
+
 using base::android::ScopedJavaLocalRef;
 
 namespace content {
@@ -83,6 +86,18 @@ void ContentViewRenderView::SurfaceChanged(JNIEnv* env, jobject obj,
     compositor_->SetSurface(surface);
   }
   compositor_->SetWindowBounds(gfx::Size(width, height));
+}
+
+void ContentViewRenderView::SetWebGLSurface(JNIEnv* env, jobject obj,
+    jobject surface) {
+  if (surface) {
+    // Note: This ensures that any local references used by
+    // ANativeWindow_fromSurface are released immediately. This is needed as a
+    // workaround for https://code.google.com/p/android/issues/detail?id=68174
+    base::android::ScopedJavaLocalFrame scoped_local_reference_frame(env);
+    LOG(ERROR) << __FUNCTION__;
+    RendererBlinkPlatformImpl::setWebGLSurface(ANativeWindow_fromSurface(env, surface));
+  }
 }
 
 void ContentViewRenderView::SetOverlayVideoMode(

@@ -74,7 +74,7 @@
 #endif
 
 #ifndef ERROR_DISABLED
-#define ERROR_DISABLED !ENABLE(ASSERT)
+#define ERROR_DISABLED 0//!ENABLE(ASSERT)
 #endif
 
 #ifndef LOG_DISABLED
@@ -349,7 +349,7 @@ while (0)
 /* WTF_LOG_ERROR */
 
 #if ERROR_DISABLED
-#define WTF_LOG_ERROR(...) ((void)0)
+#define WTF_LOG_ERROR(...) ((void)0)aaaa
 #else
 #define WTF_LOG_ERROR(...) WTFReportError(__FILE__, __LINE__, WTF_PRETTY_FUNCTION, __VA_ARGS__)
 #endif

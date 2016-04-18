@@ -772,6 +772,8 @@ bool DrawingBuffer::reset(const IntSize& newSize)
     IntSize adjustedSize = adjustSize(newSize, m_size, m_maxTextureSize);
     if (adjustedSize.isEmpty())
         return false;
+    WTF_LOG_ERROR("DrawingBufferSize: width: %d, height: %d adjusted: %d x %d", newSize.width(), newSize.height(),
+        adjustedSize.width(), adjustedSize.height());
 
     if (adjustedSize != m_size) {
         do {

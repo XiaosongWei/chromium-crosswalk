@@ -135,6 +135,11 @@
 #include "content/renderer/media/webrtc/peer_connection_dependency_factory.h"
 #endif
 
+#include <EGL/egl.h>
+#include <GLES2/gl2.h>
+#include "xwalk/runtime/renderer/android/xwalk_web_graphics_context3d_direct.h"
+#include "xwalk/runtime/renderer/android/xwalk_web_graphics_context3d_direct_impl.h"
+
 using blink::Platform;
 using blink::WebAudioDevice;
 using blink::WebBlobRegistry;
@@ -155,6 +160,8 @@ using blink::WebStorageNamespace;
 using blink::WebString;
 using blink::WebURL;
 using blink::WebVector;
+
+struct ANativeWindow;
 
 namespace content {
 
@@ -1078,6 +1085,138 @@ RendererBlinkPlatformImpl::createOffscreenGraphicsContext3D(
   }
   return context.release();
 }
+
+static ANativeWindow* gWebgl_ANativeWindow = nullptr;
+static bool gEGLContextInitialized = false;
+
+void RendererBlinkPlatformImpl::setWebGLSurface(ANativeWindow* surface) {
+  LOG(ERROR) << __FUNCTION__;
+  gWebgl_ANativeWindow = surface;
+}
+
+static EGLDisplay gDisplay;
+static EGLSurface gSurface;
+static EGLContext gContext;
+
+void destroyContext() {
+    LOG(ERROR) << "Destroying context";
+
+    eglMakeCurrent(gDisplay, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+    eglDestroyContext(gDisplay, gContext);
+    eglDestroySurface(gDisplay, gSurface);
+    eglTerminate(gDisplay);
+
+    gDisplay = EGL_NO_DISPLAY;
+    gSurface = EGL_NO_SURFACE;
+    gContext = EGL_NO_CONTEXT;
+
+    return;
+}
+
+
+bool InitializeContext(ANativeWindow* window)
+{
+    const EGLint attribs[] = {
+        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
+        EGL_BLUE_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_RED_SIZE, 8,
+        EGL_NONE
+    };
+    const EGLint kContextAttributes[] = {
+        EGL_CONTEXT_CLIENT_VERSION, 2,
+        EGL_NONE
+    };
+    EGLDisplay display;
+    EGLConfig config;
+    EGLint numConfigs;
+    EGLint format;
+    EGLSurface surface;
+    EGLContext context;
+    EGLint width;
+    EGLint height;
+
+    LOG(ERROR) << "Initializing context for WebGL";
+
+    if ((display = eglGetDisplay(EGL_DEFAULT_DISPLAY)) == EGL_NO_DISPLAY) {
+        LOG(ERROR) << "eglGetDisplay() returned error " << eglGetError();
+        return false;
+    }
+    if (!eglInitialize(display, 0, 0)) {
+        LOG(ERROR) << "eglInitialize() returned error " << eglGetError();
+        return false;
+    }
+
+    if (!eglChooseConfig(display, attribs, &config, 1, &numConfigs)) {
+        LOG(ERROR) << "eglChooseConfig() returned error " << eglGetError();
+        destroyContext();
+        return false;
+    }
+
+    if (!eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format)) {
+        LOG(ERROR) << "eglGetConfigAttrib() returned error " << eglGetError();
+        destroyContext();
+        return false;
+    }
+
+    ANativeWindow_setBuffersGeometry(window, 0, 0, format);
+
+    if (!(surface = eglCreateWindowSurface(display, config, window, 0))) {
+        LOG(ERROR) << "eglCreateWindowSurface() returned error " << eglGetError();
+        destroyContext();
+        return false;
+    }
+
+    if (!(context = eglCreateContext(display, config, 0, kContextAttributes))) {
+        LOG(ERROR) << "eglCreateContext() returned error " << eglGetError();
+        destroyContext();
+        return false;
+    }
+
+    if (!eglMakeCurrent(display, surface, surface, context)) {
+        LOG(ERROR) << "eglMakeCurrent() returned error " << eglGetError();
+        destroyContext();
+        return false;
+    }
+
+    if (!eglQuerySurface(display, surface, EGL_WIDTH, &width) ||
+        !eglQuerySurface(display, surface, EGL_HEIGHT, &height)) {
+        LOG(ERROR) << "eglQuerySurface() returned error " << eglGetError();
+        destroyContext();
+        return false;
+    }
+
+    gDisplay = display;
+    gSurface = surface;
+    gContext = context;
+    LOG(ERROR) << "EGL Context created successfully";
+
+    return true;
+}
+
+blink::WebGraphicsContext3D*
+RendererBlinkPlatformImpl::createOnscreenGraphicsContext3D(
+      const blink::WebGraphicsContext3D::Attributes& attributes) {
+      if (!gEGLContextInitialized) {
+         while (!gWebgl_ANativeWindow) {
+           LOG(ERROR) << "ANativeWindow is not set";
+           sleep(1);
+         }
+         InitializeContext(gWebgl_ANativeWindow);
+         gEGLContextInitialized = true;
+      }
+      blink::XWalkWebGraphicsContext3DDirect* context = new blink::XWalkWebGraphicsContext3DDirect();
+      context->setImplementation( new XWalkWebGraphicsContext3DDirectImpl());
+      return context;
+}
+
+void RendererBlinkPlatformImpl::swapBufferOnscreenContext3D() {
+  if (gEGLContextInitialized) {
+     eglSwapBuffers(gDisplay, gSurface);
+  }
+}
+
+
 
 //------------------------------------------------------------------------------
 

@@ -36,6 +36,7 @@ class ContentViewRenderView : public CompositorClient {
   void SurfaceDestroyed(JNIEnv* env, jobject obj);
   void SurfaceChanged(JNIEnv* env, jobject obj,
                       jint format, jint width, jint height, jobject surface);
+  void SetWebGLSurface(JNIEnv* env, jobject obj, jobject surface);
   void SetOverlayVideoMode(JNIEnv* env, jobject obj, bool enabled);
   void SetNeedsComposite(JNIEnv* env, jobject obj);
 

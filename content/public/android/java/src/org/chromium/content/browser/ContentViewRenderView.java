@@ -14,6 +14,7 @@ import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.TextureView.SurfaceTextureListener;
 import android.widget.FrameLayout;
+import android.util.Log;
 
 import org.chromium.base.annotations.CalledByNative;
 import org.chromium.base.annotations.JNINamespace;
@@ -27,11 +28,15 @@ import org.chromium.ui.base.WindowAndroid;
  */
 @JNINamespace("content")
 public class ContentViewRenderView extends FrameLayout {
+    private static final String TAG = "ContentViewRenderView";
+
     // The native side of this object.
     private long mNativeContentViewRenderView;
     private SurfaceHolder.Callback mSurfaceCallback;
+    private SurfaceHolder.Callback mWebGLSurfaceCallback;
 
     private final SurfaceView mSurfaceView;
+    private final SurfaceView mWebGLSurfaceView;
     protected ContentViewCore mContentViewCore;
 
     // Enum for the type of compositing surface:
@@ -153,18 +158,27 @@ public class ContentViewRenderView extends FrameLayout {
             // Avoid compiler warning.
             mSurfaceView = null;
             mSurfaceCallback = null;
+            mWebGLSurfaceView = null;
+            mWebGLSurfaceCallback = null;
             return;
         }
 
         mSurfaceView = createSurfaceView(getContext());
-        mSurfaceView.setZOrderMediaOverlay(true);
+        mWebGLSurfaceView = createSurfaceView(getContext());
+        //mSurfaceView.setZOrderMediaOverlay(true);
+        mWebGLSurfaceView.setZOrderMediaOverlay(true);
 
         setSurfaceViewBackgroundColor(Color.WHITE);
         addView(mSurfaceView,
                 new FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
                         FrameLayout.LayoutParams.MATCH_PARENT));
+        addView(mWebGLSurfaceView,
+                new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT));
         mSurfaceView.setVisibility(GONE);
+        mWebGLSurfaceView.setVisibility(GONE);
     }
 
     /**
@@ -218,6 +232,24 @@ public class ContentViewRenderView extends FrameLayout {
         };
         mSurfaceView.getHolder().addCallback(mSurfaceCallback);
         mSurfaceView.setVisibility(VISIBLE);
+
+        mWebGLSurfaceCallback = new SurfaceHolder.Callback() {
+            @Override
+            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+                Log.e(TAG, "WebGLSurfaceView " + width + "x" + height);
+            }
+
+            @Override
+            public void surfaceCreated(SurfaceHolder holder) {
+                nativeSetWebGLSurface(mNativeContentViewRenderView, holder.getSurface());
+            }
+
+            @Override
+            public void surfaceDestroyed(SurfaceHolder holder) {
+            }
+        };
+        mWebGLSurfaceView.getHolder().addCallback(mWebGLSurfaceCallback);
+        mWebGLSurfaceView.setVisibility(VISIBLE);
     }
 
     /**
@@ -383,4 +415,5 @@ public class ContentViewRenderView extends FrameLayout {
     private native void nativeSetOverlayVideoMode(long nativeContentViewRenderView,
             boolean enabled);
     private native void nativeSetNeedsComposite(long nativeContentViewRenderView);
+    private native void nativeSetWebGLSurface(long nativeContentViewRenderView, Surface surface);
 }

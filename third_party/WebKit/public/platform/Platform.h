@@ -600,6 +600,10 @@ public:
     virtual WebGraphicsContext3D* createOffscreenGraphicsContext3D(const WebGraphicsContext3D::Attributes&, WebGraphicsContext3D* shareContext, WebGraphicsContext3D::WebGraphicsInfo* glInfo) { return nullptr; }
     virtual WebGraphicsContext3D* createOffscreenGraphicsContext3D(const WebGraphicsContext3D::Attributes&) { return nullptr; }
 
+    // Create a WebGraphicsContext3D for rendering directly to onscreen surface.
+    virtual WebGraphicsContext3D* createOnscreenGraphicsContext3D(const WebGraphicsContext3D::Attributes&) { return nullptr; }
+    virtual void swapBufferOnscreenContext3D() {}
+
     // Returns a newly allocated and initialized offscreen context provider. The provider may return a null
     // graphics context if GPU is not supported.
     virtual WebGraphicsContext3DProvider* createSharedOffscreenGraphicsContext3DProvider() { return nullptr; }

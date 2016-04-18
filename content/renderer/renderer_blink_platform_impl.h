@@ -59,6 +59,8 @@ class CONTENT_EXPORT RendererBlinkPlatformImpl : public BlinkPlatformImpl {
       scheduler::RendererScheduler* renderer_scheduler);
   ~RendererBlinkPlatformImpl() override;
 
+  static void setWebGLSurface(ANativeWindow* surface);
+
   // Shutdown must be called just prior to shutting down blink.
   void Shutdown();
 
@@ -152,6 +154,12 @@ class CONTENT_EXPORT RendererBlinkPlatformImpl : public BlinkPlatformImpl {
       const blink::WebGraphicsContext3D::Attributes& attributes,
       blink::WebGraphicsContext3D* share_context,
       blink::WebGraphicsContext3D::WebGraphicsInfo* gl_info) override;
+
+  // XWalk specific
+  blink::WebGraphicsContext3D* createOnscreenGraphicsContext3D(
+	  const blink::WebGraphicsContext3D::Attributes& attributes) override;
+  void swapBufferOnscreenContext3D() override;
+
   blink::WebGraphicsContext3DProvider*
   createSharedOffscreenGraphicsContext3DProvider() override;
   blink::WebCompositorSupport* compositorSupport() override;

@@ -386,7 +386,7 @@ public:
     void forceRestoreContext();
     void loseContextImpl(LostContextMode, AutoRecoveryMethod);
 
-    WebGraphicsContext3D* webContext() const { return drawingBuffer()->context(); }
+    WebGraphicsContext3D* webContext() const { return m_context.get();/*drawingBuffer()->context();*/ }
     WebGLContextGroup* contextGroup() const { return m_contextGroup.get(); }
     Extensions3DUtil* extensionsUtil();
 
@@ -497,6 +497,11 @@ protected:
     // to the back-buffer of m_context.
     RefPtr<DrawingBuffer> m_drawingBuffer;
     DrawingBuffer* drawingBuffer() const;
+
+    // added by Xiaosong
+    int mDrawingBufferWidth;
+    int mDrawingBufferHeight;
+    OwnPtr<WebGraphicsContext3D> m_context;
 
     RefPtr<WebGLContextGroup> m_contextGroup;
 

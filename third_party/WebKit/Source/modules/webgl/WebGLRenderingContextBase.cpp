@@ -572,15 +572,19 @@ PassOwnPtr<WebGraphicsContext3D> WebGLRenderingContextBase::createWebGraphicsCon
         return nullptr;
     }
 
+    WTF_LOG_ERROR("XS@createWebGraphicsContext3D");
+
     WebGraphicsContext3D::Attributes wgc3dAttributes = toWebGraphicsContext3DAttributes(attributes, document.topDocument().url().string(), settings, webGLVersion);
     WebGraphicsContext3D::WebGraphicsInfo glInfo;
     glInfo.testFailContext = shouldFailContextCreationForTesting;
-    OwnPtr<WebGraphicsContext3D> context = adoptPtr(Platform::current()->createOffscreenGraphicsContext3D(wgc3dAttributes, 0, &glInfo));
+    //OwnPtr<WebGraphicsContext3D> context = adoptPtr(Platform::current()->createOffscreenGraphicsContext3D(wgc3dAttributes, 0, &glInfo));
+    OwnPtr<WebGraphicsContext3D> context = adoptPtr(Platform::current()->createOnscreenGraphicsContext3D(wgc3dAttributes));
     if (!context || shouldFailContextCreationForTesting) {
         shouldFailContextCreationForTesting = false;
         canvas->dispatchEvent(WebGLContextEvent::create(EventTypeNames::webglcontextcreationerror, false, true, extractWebGLContextCreationError(glInfo)));
         return nullptr;
     }
+    WTF_LOG_ERROR("onscreen context created successfully");
 
     return context.release();
 }
@@ -936,6 +940,7 @@ bool isSRGBFormat(GLenum internalformat)
 
 WebGLRenderingContextBase::WebGLRenderingContextBase(HTMLCanvasElement* passedCanvas, PassOwnPtr<WebGraphicsContext3D> context, const WebGLContextAttributes& requestedAttributes)
     : CanvasRenderingContext(passedCanvas)
+    , m_context(context)
     , m_contextLostMode(NotLostContext)
     , m_autoRecoveryMethod(Manual)
     , m_dispatchContextLostEventTimer(this, &WebGLRenderingContextBase::dispatchContextLostEvent)
@@ -956,13 +961,19 @@ WebGLRenderingContextBase::WebGLRenderingContextBase(HTMLCanvasElement* passedCa
     , m_isEXTsRGBFormatsTypesAdded(false)
 {
     ASSERT(context);
+    WTF_LOG_ERROR("WebGLRenderingContextBase");
 
     m_contextGroup = WebGLContextGroup::create();
     m_contextGroup->addContext(this);
 
     m_maxViewportDims[0] = m_maxViewportDims[1] = 0;
-    context->getIntegerv(GL_MAX_VIEWPORT_DIMS, m_maxViewportDims);
+    m_context->getIntegerv(GL_MAX_VIEWPORT_DIMS, m_maxViewportDims);
 
+    // added by Xiaosong
+    mDrawingBufferWidth = clampedCanvasSize().width();
+    mDrawingBufferHeight = clampedCanvasSize().height();
+
+#if 0 // Xiaosong: direct rendering to onscreen surface
     RefPtr<DrawingBuffer> buffer = createDrawingBuffer(context);
     if (!buffer) {
         m_contextLostMode = SyntheticLostContext;
@@ -973,6 +984,7 @@ WebGLRenderingContextBase::WebGLRenderingContextBase(HTMLCanvasElement* passedCa
 
     drawingBuffer()->bind(GL_FRAMEBUFFER);
     setupFlags();
+#endif
 
 #define ADD_VALUES_TO_SET(set, values) \
     for (size_t i = 0; i < arraysize(values); ++i) {   \
@@ -1000,7 +1012,8 @@ PassRefPtr<DrawingBuffer> WebGLRenderingContextBase::createDrawingBuffer(PassOwn
 void WebGLRenderingContextBase::initializeNewContext()
 {
     ASSERT(!isContextLost());
-    ASSERT(drawingBuffer());
+    //ASSERT(drawingBuffer());
+    WTF_LOG_ERROR("initializeNewContext");
 
     m_markedCanvasDirty = false;
     m_activeTextureUnit = 0;
@@ -1171,6 +1184,7 @@ WebGLRenderingContextBase::~WebGLRenderingContextBase()
         m_textureUnits[i].m_texture2DArrayBinding = nullptr;
     }
 
+    WTF_LOG_ERROR("~WebGLRenderingContextBase");
     m_blackTexture2D = nullptr;
     m_blackTextureCubeMap = nullptr;
 
@@ -1198,17 +1212,21 @@ WebGLRenderingContextBase::~WebGLRenderingContextBase()
 
 void WebGLRenderingContextBase::destroyContext()
 {
+#if 0
     if (!drawingBuffer())
         return;
 
     m_extensionsUtil.clear();
+#endif
 
     webContext()->setContextLostCallback(nullptr);
     webContext()->setErrorMessageCallback(nullptr);
 
+#if 0
     ASSERT(drawingBuffer());
     m_drawingBuffer->beginDestruction();
     m_drawingBuffer.clear();
+#endif
 }
 
 void WebGLRenderingContextBase::markContextChanged(ContentChangeType changeType)
@@ -1216,7 +1234,7 @@ void WebGLRenderingContextBase::markContextChanged(ContentChangeType changeType)
     if (m_framebufferBinding || isContextLost())
         return;
 
-    drawingBuffer()->markContentsChanged();
+    // drawingBuffer()->markContentsChanged();
 
     LayoutBox* layoutBox = canvas()->layoutBox();
     if (layoutBox && layoutBox->hasAcceleratedCompositing()) {
@@ -1304,21 +1322,25 @@ void WebGLRenderingContextBase::restoreStateAfterClear()
 
 void WebGLRenderingContextBase::markLayerComposited()
 {
+#if 0
     if (!isContextLost())
         drawingBuffer()->setBufferClearNeeded(true);
+#endif
 }
 
 void WebGLRenderingContextBase::setIsHidden(bool hidden)
 {
+#if 0
     if (drawingBuffer())
         drawingBuffer()->setIsHidden(hidden);
+#endif
 }
 
 bool WebGLRenderingContextBase::paintRenderingResultsToCanvas(SourceDrawingBuffer sourceBuffer)
 {
     if (isContextLost())
         return false;
-
+#if 0
     bool mustClearNow = clearIfComposited() != Skipped;
     if (!m_markedCanvasDirty && !mustClearNow)
         return false;
@@ -1340,7 +1362,7 @@ bool WebGLRenderingContextBase::paintRenderingResultsToCanvas(SourceDrawingBuffe
         ASSERT_NOT_REACHED();
         return false;
     }
-
+#endif
     return true;
 }
 
@@ -1350,7 +1372,8 @@ ImageData* WebGLRenderingContextBase::paintRenderingResultsToImageData(SourceDra
         return nullptr;
     if (m_requestedAttributes.premultipliedAlpha())
         return nullptr;
-
+    return nullptr;
+#if 0
     clearIfComposited();
     drawingBuffer()->commit();
     ScopedFramebufferRestorer restorer(this);
@@ -1363,6 +1386,7 @@ ImageData* WebGLRenderingContextBase::paintRenderingResultsToImageData(SourceDra
     return ImageData::create(
         IntSize(width, height),
         DOMUint8ClampedArray::create(imageDataPixels, 0, imageDataPixels->byteLength()));
+#endif
 }
 
 void WebGLRenderingContextBase::reshape(int width, int height)
@@ -1370,6 +1394,9 @@ void WebGLRenderingContextBase::reshape(int width, int height)
     if (isContextLost())
         return;
 
+    WTF_LOG_ERROR("reshape (%d, %d)", width, height);
+
+#if 0
     // This is an approximation because at WebGLRenderingContextBase level we don't
     // know if the underlying FBO uses textures or renderbuffers.
     GLint maxSize = std::min(m_maxTextureSize, m_maxRenderbufferSize);
@@ -1390,6 +1417,8 @@ void WebGLRenderingContextBase::reshape(int width, int height)
         height = std::max(1, static_cast<int>(height * scaleFactor));
     }
 
+    WTF_LOG_ERROR("reshape then resetDrawingbuFfer (%d, %d)", width, height);
+
     // We don't have to mark the canvas as dirty, since the newly created image buffer will also start off
     // clear (and this matches what reshape will do).
     drawingBuffer()->reset(IntSize(width, height));
@@ -1398,16 +1427,19 @@ void WebGLRenderingContextBase::reshape(int width, int height)
     webContext()->bindTexture(GL_TEXTURE_2D, objectOrZero(m_textureUnits[m_activeTextureUnit].m_texture2DBinding.get()));
     webContext()->bindRenderbuffer(GL_RENDERBUFFER, objectOrZero(m_renderbufferBinding.get()));
     drawingBuffer()->restoreFramebufferBindings();
+#endif
 }
 
 int WebGLRenderingContextBase::drawingBufferWidth() const
 {
-    return isContextLost() ? 0 : drawingBuffer()->size().width();
+    return mDrawingBufferWidth; // Xiaosong
+    //return isContextLost() ? 0 : drawingBuffer()->size().width();
 }
 
 int WebGLRenderingContextBase::drawingBufferHeight() const
 {
-    return isContextLost() ? 0 : drawingBuffer()->size().height();
+    return mDrawingBufferHeight; // Xiaosong
+    //return isContextLost() ? 0 : drawingBuffer()->size().height();
 }
 
 unsigned WebGLRenderingContextBase::sizeInBytes(GLenum type)
@@ -1443,7 +1475,7 @@ void WebGLRenderingContextBase::activeTexture(GLenum texture)
     m_activeTextureUnit = texture - GL_TEXTURE0;
     webContext()->activeTexture(texture);
 
-    drawingBuffer()->setActiveTextureUnit(texture);
+    // drawingBuffer()->setActiveTextureUnit(texture);
 
 }
 
@@ -1591,8 +1623,8 @@ void WebGLRenderingContextBase::bindTexture(ScriptState* scriptState, GLenum tar
     if (target == GL_TEXTURE_2D) {
         m_textureUnits[m_activeTextureUnit].m_texture2DBinding = texture;
 
-        if (!m_activeTextureUnit)
-            drawingBuffer()->setTexture2DBinding(objectOrZero(texture));
+        //if (!m_activeTextureUnit)
+        //    drawingBuffer()->setTexture2DBinding(objectOrZero(texture));
         bindingPointName = "texture_2d";
     } else if (target == GL_TEXTURE_CUBE_MAP) {
         m_textureUnits[m_activeTextureUnit].m_textureCubeMapBinding = texture;
@@ -1805,7 +1837,7 @@ void WebGLRenderingContextBase::clear(GLbitfield mask)
         synthesizeGLError(GL_INVALID_FRAMEBUFFER_OPERATION, "clear", reason);
         return;
     }
-    if (clearIfComposited(mask) != CombinedClear)
+    //if (clearIfComposited(mask) != CombinedClear)
         webContext()->clear(mask);
     markContextChanged(CanvasChanged);
 }
@@ -1969,8 +2001,8 @@ void WebGLRenderingContextBase::copyTexImage2D(GLenum target, GLint level, GLenu
     WebGLFramebuffer* readFramebufferBinding = nullptr;
     if (!validateReadBufferAndGetInfo("copyTexImage2D", readFramebufferBinding, nullptr, nullptr))
         return;
-    clearIfComposited();
-    ScopedDrawingBufferBinder binder(drawingBuffer(), readFramebufferBinding);
+    //clearIfComposited();
+    //ScopedDrawingBufferBinder binder(drawingBuffer(), readFramebufferBinding);
     webContext()->copyTexImage2D(target, level, internalformat, x, y, width, height, border);
     // FIXME: if the framebuffer is not complete, none of the below should be executed.
     tex->setLevelInfo(target, level, internalformat, width, height, 1, GL_UNSIGNED_BYTE);
@@ -1985,8 +2017,8 @@ void WebGLRenderingContextBase::copyTexSubImage2D(GLenum target, GLint level, GL
     WebGLFramebuffer* readFramebufferBinding = nullptr;
     if (!validateReadBufferAndGetInfo("copyTexSubImage2D", readFramebufferBinding, nullptr, nullptr))
         return;
-    clearIfComposited();
-    ScopedDrawingBufferBinder binder(drawingBuffer(), readFramebufferBinding);
+    //clearIfComposited();
+    //ScopedDrawingBufferBinder binder(drawingBuffer(), readFramebufferBinding);
     webContext()->copyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
 }
 
@@ -2116,9 +2148,9 @@ void WebGLRenderingContextBase::deleteFramebuffer(WebGLFramebuffer* framebuffer)
         return;
     if (framebuffer == m_framebufferBinding) {
         m_framebufferBinding = nullptr;
-        drawingBuffer()->setFramebufferBinding(GL_FRAMEBUFFER, 0);
+        //drawingBuffer()->setFramebufferBinding(GL_FRAMEBUFFER, 0);
         // Have to call drawingBuffer()->bind() here to bind back to internal fbo.
-        drawingBuffer()->bind(GL_FRAMEBUFFER);
+        //drawingBuffer()->bind(GL_FRAMEBUFFER);
     }
 }
 
@@ -2156,8 +2188,8 @@ void WebGLRenderingContextBase::deleteTexture(WebGLTexture* texture)
         if (texture == m_textureUnits[i].m_texture2DBinding) {
             m_textureUnits[i].m_texture2DBinding = nullptr;
             maxBoundTextureIndex = i;
-            if (!i)
-                drawingBuffer()->setTexture2DBinding(0);
+            //if (!i)
+            //    drawingBuffer()->setTexture2DBinding(0);
         }
         if (texture == m_textureUnits[i].m_textureCubeMapBinding) {
             m_textureUnits[i].m_textureCubeMapBinding = nullptr;
@@ -2237,7 +2269,7 @@ void WebGLRenderingContextBase::disable(GLenum cap)
     }
     if (cap == GL_SCISSOR_TEST) {
         m_scissorEnabled = false;
-        drawingBuffer()->setScissorEnabled(m_scissorEnabled);
+        //drawingBuffer()->setScissorEnabled(m_scissorEnabled);
     }
     webContext()->disable(cap);
 }
@@ -2285,12 +2317,14 @@ void WebGLRenderingContextBase::drawArrays(GLenum mode, GLint first, GLsizei cou
     if (!validateDrawArrays("drawArrays", mode, first, count))
         return;
 
-    clearIfComposited();
+    //clearIfComposited();
 
     handleTextureCompleteness("drawArrays", true);
     webContext()->drawArrays(mode, first, count);
     handleTextureCompleteness("drawArrays", false);
     markContextChanged(CanvasChanged);
+    // TODO: eglSwapBuffers shall be called elsewhere
+    Platform::current()->swapBufferOnscreenContext3D();
 }
 
 void WebGLRenderingContextBase::drawElements(GLenum mode, GLsizei count, GLenum type, long long offset)
@@ -2298,12 +2332,14 @@ void WebGLRenderingContextBase::drawElements(GLenum mode, GLsizei count, GLenum 
     if (!validateDrawElements("drawElements", mode, count, type, offset))
         return;
 
-    clearIfComposited();
+    //clearIfComposited();
 
     handleTextureCompleteness("drawElements", true);
     webContext()->drawElements(mode, count, type, static_cast<GLintptr>(offset));
     handleTextureCompleteness("drawElements", false);
     markContextChanged(CanvasChanged);
+    // TODO: eglSwapBuffers shall be called elsewhere
+    Platform::current()->swapBufferOnscreenContext3D();
 }
 
 void WebGLRenderingContextBase::drawArraysInstancedANGLE(GLenum mode, GLint first, GLsizei count, GLsizei primcount)
@@ -2349,7 +2385,7 @@ void WebGLRenderingContextBase::enable(GLenum cap)
     }
     if (cap == GL_SCISSOR_TEST) {
         m_scissorEnabled = true;
-        drawingBuffer()->setScissorEnabled(m_scissorEnabled);
+        //drawingBuffer()->setScissorEnabled(m_scissorEnabled);
     }
     webContext()->enable(cap);
 }
@@ -2627,6 +2663,7 @@ void WebGLRenderingContextBase::getContextAttributes(Nullable<WebGLContextAttrib
     if (isContextLost())
         return;
     result.set(m_requestedAttributes);
+#if 0
     // Some requested attributes may not be honored, so we need to query the underlying
     // context/drawing buffer and adjust accordingly.
     WebGraphicsContext3D::Attributes attrs = drawingBuffer()->getActualAttributes();
@@ -2635,6 +2672,7 @@ void WebGLRenderingContextBase::getContextAttributes(Nullable<WebGLContextAttrib
     if (m_requestedAttributes.stencil() && !attrs.stencil)
         result.get().setStencil(false);
     result.get().setAntialias(drawingBuffer()->multisample());
+#endif
 }
 
 GLenum WebGLRenderingContextBase::getError()
@@ -2683,6 +2721,7 @@ ScriptValue WebGLRenderingContextBase::getExtension(ScriptState* scriptState, co
     WebGLExtension* extension = nullptr;
     bool linkContextToExtension = false;
 
+#if 0
     if (!isContextLost()) {
         for (size_t i = 0; i < m_extensions.size(); ++i) {
             ExtensionTracker* tracker = m_extensions[i];
@@ -2700,7 +2739,7 @@ ScriptValue WebGLRenderingContextBase::getExtension(ScriptState* scriptState, co
             }
         }
     }
-
+#endif
     v8::Local<v8::Value> wrappedExtension = toV8(extension, scriptState->context()->Global(), scriptState->isolate());
 
     if (linkContextToExtension) {
@@ -3876,13 +3915,13 @@ void WebGLRenderingContextBase::readPixels(GLint x, GLint y, GLsizei width, GLsi
         return;
     }
 
-    clearIfComposited();
+    //clearIfComposited();
     void* data = pixels->baseAddress();
 
-    GLenum target = isWebGL2OrHigher() ? GL_READ_FRAMEBUFFER : GL_FRAMEBUFFER;
-    WebGLFramebuffer* readFramebufferBinding = getFramebufferBinding(target);
+    //GLenum target = isWebGL2OrHigher() ? GL_READ_FRAMEBUFFER : GL_FRAMEBUFFER;
+    //WebGLFramebuffer* readFramebufferBinding = getFramebufferBinding(target);
     {
-        ScopedDrawingBufferBinder binder(drawingBuffer(), readFramebufferBinding);
+        //ScopedDrawingBufferBinder binder(drawingBuffer(), readFramebufferBinding);
         webContext()->readPixels(x, y, width, height, format, type, data);
     }
 }
@@ -5148,6 +5187,7 @@ void WebGLRenderingContextBase::viewport(GLint x, GLint y, GLsizei width, GLsize
         return;
     if (!validateSize("viewport", width, height))
         return;
+    WTF_LOG_ERROR("viewport (%d, %d, %d, %d)", x, y, width, height);
     webContext()->viewport(x, y, width, height);
 }
 
@@ -5237,14 +5277,18 @@ void WebGLRenderingContextBase::forceRestoreContext()
 
 WebLayer* WebGLRenderingContextBase::platformLayer() const
 {
-    return isContextLost() ? 0 : drawingBuffer()->platformLayer();
+    WTF_LOG_ERROR("platformLayer");
+    return nullptr;
+    //return isContextLost() ? 0 : drawingBuffer()->platformLayer();
 }
 
 void WebGLRenderingContextBase::setFilterQuality(SkFilterQuality filterQuality)
 {
+#if 0
     if (!isContextLost() && drawingBuffer()) {
         drawingBuffer()->setFilterQuality(filterQuality);
     }
+#endif
 }
 
 Extensions3DUtil* WebGLRenderingContextBase::extensionsUtil()
@@ -6579,7 +6623,7 @@ void WebGLRenderingContextBase::maybeRestoreContext(Timer<WebGLRenderingContextB
     // the retry loop for real context lost events.
     if (!m_restoreAllowed)
         return;
-
+#if 0
     LocalFrame* frame = canvas()->document().frame();
     if (!frame)
         return;
@@ -6626,6 +6670,7 @@ void WebGLRenderingContextBase::maybeRestoreContext(Timer<WebGLRenderingContextB
     initializeNewContext();
     markContextChanged(CanvasContextChanged);
     canvas()->dispatchEvent(WebGLContextEvent::create(EventTypeNames::webglcontextrestored, false, true, ""));
+#endif
 }
 
 String WebGLRenderingContextBase::ensureNotNull(const String& text) const
@@ -6746,6 +6791,8 @@ void WebGLRenderingContextBase::enableOrDisable(GLenum capability, bool enable)
 
 IntSize WebGLRenderingContextBase::clampedCanvasSize()
 {
+    WTF_LOG_ERROR("clampedCanvasSize: canvas: %d %d maxViewport: %d %d", canvas()->width(), canvas()->height(),
+    m_maxViewportDims[0],m_maxViewportDims[1]);
     return IntSize(clamp(canvas()->width(), 1, m_maxViewportDims[0]),
         clamp(canvas()->height(), 1, m_maxViewportDims[1]));
 }
@@ -6785,11 +6832,11 @@ void WebGLRenderingContextBase::setFramebuffer(GLenum target, WebGLFramebuffer* 
         m_framebufferBinding = buffer;
         applyStencilTest();
     }
-    drawingBuffer()->setFramebufferBinding(target, objectOrZero(getFramebufferBinding(target)));
+    //drawingBuffer()->setFramebufferBinding(target, objectOrZero(getFramebufferBinding(target)));
 
     if (!buffer) {
         // Instead of binding fb 0, bind the drawing buffer.
-        drawingBuffer()->bind(target);
+        //drawingBuffer()->bind(target);
     } else {
         webContext()->bindFramebuffer(target, buffer->object());
     }
