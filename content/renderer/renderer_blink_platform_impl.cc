@@ -1099,6 +1099,7 @@ static EGLSurface gSurface;
 static EGLContext gContext;
 static EGLint gBufferWidth = 0;
 static EGLint gBufferHeight = 0;
+static EGLint gBufferFormat = 0;
 
 void destroyContext() {
     LOG(ERROR) << "Destroying context";
@@ -1163,6 +1164,7 @@ bool InitializeContext(ANativeWindow* window)
         return false;
     }
 
+    gBufferFormat = format;
     ANativeWindow_setBuffersGeometry(window, gBufferWidth, gBufferHeight, format);
 
     if (!(surface = eglCreateWindowSurface(display, config, window, 0))) {
@@ -1225,7 +1227,7 @@ void RendererBlinkPlatformImpl::setCanvasSize(int width, int height) {
   gBufferHeight = height;
   LOG(ERROR) << "Canvas/Buffer " << width << " " << height;
   if (gEGLContextInitialized) {
-    ANativeWindow_setBuffersGeometry(gWebgl_ANativeWindow, gBufferWidth, gBufferHeight, 0);
+    ANativeWindow_setBuffersGeometry(gWebgl_ANativeWindow, gBufferWidth, gBufferHeight, gBufferFormat);
   } else {
      InitializeContext(gWebgl_ANativeWindow);
      gEGLContextInitialized = true;
