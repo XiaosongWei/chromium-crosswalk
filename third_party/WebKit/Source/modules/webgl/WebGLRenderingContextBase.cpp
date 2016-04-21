@@ -98,7 +98,7 @@
 #include "wtf/text/StringBuilder.h"
 
 #include <android/log.h>
-#define WEBGL_LOG(FORMAT, ...) __android_log_print(ANDROID_LOG_ERROR, "WebGL", "%s:" FORMAT,  __PRETTY_FUNCTION__, ##__VA_ARGS__)
+#define WEBGL_LOG(FORMAT, ...) __android_log_print(ANDROID_LOG_ERROR, "WebGL", "%s:" FORMAT,  __FUNCTION__, ##__VA_ARGS__)
 
 namespace blink {
 
@@ -567,14 +567,15 @@ PassOwnPtr<WebGraphicsContext3D> WebGLRenderingContextBase::createWebGraphicsCon
         return nullptr;
     }
     Settings* settings = frame->settings();
-
+    if (settings ) WEBGL_LOG(" WebGL enabled: %d", settings->webGLEnabled());
+#if 0 // We always allow WebGL!
     // The FrameLoaderClient might block creation of a new WebGL context despite the page settings; in
     // particular, if WebGL contexts were lost one or more times via the GL_ARB_robustness extension.
     if (!frame->loader().client()->allowWebGL(settings && settings->webGLEnabled())) {
         canvas->dispatchEvent(WebGLContextEvent::create(EventTypeNames::webglcontextcreationerror, false, true, "Web page was not allowed to create a WebGL context."));
         return nullptr;
     }
-
+#endif
     WEBGL_LOG("createWebGraphicsContext3D");
 
     WebGraphicsContext3D::Attributes wgc3dAttributes = toWebGraphicsContext3DAttributes(attributes, document.topDocument().url().string(), settings, webGLVersion);

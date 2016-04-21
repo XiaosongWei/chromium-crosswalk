@@ -62,11 +62,15 @@
 #include "platform/graphics/gpu/DrawingBuffer.h"
 #include "public/platform/Platform.h"
 
+#include <android/log.h>
+#define WEBGL_LOG(FORMAT, ...) __android_log_print(ANDROID_LOG_ERROR, "WebGL", "%s:" FORMAT,  __FUNCTION__, ##__VA_ARGS__)
+
 namespace blink {
 
 PassOwnPtrWillBeRawPtr<CanvasRenderingContext> WebGLRenderingContext::Factory::create(HTMLCanvasElement* canvas, const CanvasContextCreationAttributes& attrs, Document&)
 {
     WebGLContextAttributes attributes = toWebGLContextAttributes(attrs);
+    WEBGL_LOG(" factory create");
     OwnPtr<WebGraphicsContext3D> context(createWebGraphicsContext3D(canvas, attributes, 1));
     if (!context)
         return nullptr;
@@ -79,7 +83,7 @@ PassOwnPtrWillBeRawPtr<CanvasRenderingContext> WebGLRenderingContext::Factory::c
         context->pushGroupMarkerEXT(contextLabel.ascii().data());
     }
 #endif
-    WTF_LOG_ERROR("create WebGLRenderingContext");
+    WEBGL_LOG("create WebGLRenderingContext");
     OwnPtrWillBeRawPtr<WebGLRenderingContext> renderingContext = adoptPtrWillBeNoop(new WebGLRenderingContext(canvas, context.release(), attributes));
 
 #if 0 // Xiaosong: no drawingBuffer for rendering direct ro onscreen surface
@@ -88,7 +92,7 @@ PassOwnPtrWillBeRawPtr<CanvasRenderingContext> WebGLRenderingContext::Factory::c
         return nullptr;
     }
 #endif
-    WTF_LOG_ERROR("initializeNewContext");
+    WEBGL_LOG("initializeNewContext");
     renderingContext->initializeNewContext();
 
     // Xiaosong:
