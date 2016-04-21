@@ -1097,6 +1097,8 @@ void RendererBlinkPlatformImpl::setWebGLSurface(ANativeWindow* surface) {
 static EGLDisplay gDisplay;
 static EGLSurface gSurface;
 static EGLContext gContext;
+static EGLint gBufferWidth = 0;
+static EGLint gBufferHeight = 0;
 
 void destroyContext() {
     LOG(ERROR) << "Destroying context";
@@ -1121,6 +1123,7 @@ bool InitializeContext(ANativeWindow* window)
         EGL_BLUE_SIZE, 8,
         EGL_GREEN_SIZE, 8,
         EGL_RED_SIZE, 8,
+        EGL_DEPTH_SIZE, 16,
         EGL_NONE
     };
     const EGLint kContextAttributes[] = {
@@ -1137,6 +1140,7 @@ bool InitializeContext(ANativeWindow* window)
     EGLint height;
 
     LOG(ERROR) << "Initializing context for WebGL";
+    LOG(ERROR) << "buffer width: " << gBufferWidth << " height: " << gBufferHeight;
 
     if ((display = eglGetDisplay(EGL_DEFAULT_DISPLAY)) == EGL_NO_DISPLAY) {
         LOG(ERROR) << "eglGetDisplay() returned error " << eglGetError();
@@ -1159,7 +1163,7 @@ bool InitializeContext(ANativeWindow* window)
         return false;
     }
 
-    ANativeWindow_setBuffersGeometry(window, 0, 0, format);
+    ANativeWindow_setBuffersGeometry(window, gBufferWidth, gBufferHeight, format);
 
     if (!(surface = eglCreateWindowSurface(display, config, window, 0))) {
         LOG(ERROR) << "eglCreateWindowSurface() returned error " << eglGetError();
@@ -1189,7 +1193,7 @@ bool InitializeContext(ANativeWindow* window)
     gDisplay = display;
     gSurface = surface;
     gContext = context;
-    LOG(ERROR) << "EGL Context created successfully";
+    LOG(ERROR) << "EGL Context created successfully, surface(" << width << "," << height << ")";
 
     return true;
 }
@@ -1216,6 +1220,17 @@ void RendererBlinkPlatformImpl::swapBufferOnscreenContext3D() {
   }
 }
 
+void RendererBlinkPlatformImpl::setCanvasSize(int width, int height) {
+  gBufferWidth = width;
+  gBufferHeight = height;
+  LOG(ERROR) << "Canvas/Buffer " << width << " " << height;
+  if (gEGLContextInitialized) {
+    ANativeWindow_setBuffersGeometry(gWebgl_ANativeWindow, gBufferWidth, gBufferHeight, 0);
+  } else {
+     InitializeContext(gWebgl_ANativeWindow);
+     gEGLContextInitialized = true;
+  }
+}
 
 
 //------------------------------------------------------------------------------

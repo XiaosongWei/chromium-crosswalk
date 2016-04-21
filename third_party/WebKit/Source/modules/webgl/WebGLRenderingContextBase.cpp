@@ -97,6 +97,9 @@
 #include "wtf/PassOwnPtr.h"
 #include "wtf/text/StringBuilder.h"
 
+#include <android/log.h>
+#define WEBGL_LOG(FORMAT, ...) __android_log_print(ANDROID_LOG_ERROR, "WebGL", "%s:" FORMAT,  __PRETTY_FUNCTION__, ##__VA_ARGS__)
+
 namespace blink {
 
 namespace {
@@ -572,7 +575,7 @@ PassOwnPtr<WebGraphicsContext3D> WebGLRenderingContextBase::createWebGraphicsCon
         return nullptr;
     }
 
-    WTF_LOG_ERROR("XS@createWebGraphicsContext3D");
+    WEBGL_LOG("createWebGraphicsContext3D");
 
     WebGraphicsContext3D::Attributes wgc3dAttributes = toWebGraphicsContext3DAttributes(attributes, document.topDocument().url().string(), settings, webGLVersion);
     WebGraphicsContext3D::WebGraphicsInfo glInfo;
@@ -584,7 +587,7 @@ PassOwnPtr<WebGraphicsContext3D> WebGLRenderingContextBase::createWebGraphicsCon
         canvas->dispatchEvent(WebGLContextEvent::create(EventTypeNames::webglcontextcreationerror, false, true, extractWebGLContextCreationError(glInfo)));
         return nullptr;
     }
-    WTF_LOG_ERROR("onscreen context created successfully");
+    WEBGL_LOG("onscreen context created successfully");
 
     return context.release();
 }
@@ -961,7 +964,7 @@ WebGLRenderingContextBase::WebGLRenderingContextBase(HTMLCanvasElement* passedCa
     , m_isEXTsRGBFormatsTypesAdded(false)
 {
     ASSERT(context);
-    WTF_LOG_ERROR("WebGLRenderingContextBase");
+    WEBGL_LOG("WebGLRenderingContextBase");
 
     m_contextGroup = WebGLContextGroup::create();
     m_contextGroup->addContext(this);
@@ -972,6 +975,7 @@ WebGLRenderingContextBase::WebGLRenderingContextBase(HTMLCanvasElement* passedCa
     // added by Xiaosong
     mDrawingBufferWidth = clampedCanvasSize().width();
     mDrawingBufferHeight = clampedCanvasSize().height();
+    Platform::current()->setCanvasSize(mDrawingBufferWidth, mDrawingBufferHeight);
 
 #if 0 // Xiaosong: direct rendering to onscreen surface
     RefPtr<DrawingBuffer> buffer = createDrawingBuffer(context);
@@ -1013,7 +1017,7 @@ void WebGLRenderingContextBase::initializeNewContext()
 {
     ASSERT(!isContextLost());
     //ASSERT(drawingBuffer());
-    WTF_LOG_ERROR("initializeNewContext");
+    WEBGL_LOG("initializeNewContext");
 
     m_markedCanvasDirty = false;
     m_activeTextureUnit = 0;
@@ -1184,7 +1188,7 @@ WebGLRenderingContextBase::~WebGLRenderingContextBase()
         m_textureUnits[i].m_texture2DArrayBinding = nullptr;
     }
 
-    WTF_LOG_ERROR("~WebGLRenderingContextBase");
+    WEBGL_LOG("~WebGLRenderingContextBase");
     m_blackTexture2D = nullptr;
     m_blackTextureCubeMap = nullptr;
 
@@ -1394,7 +1398,10 @@ void WebGLRenderingContextBase::reshape(int width, int height)
     if (isContextLost())
         return;
 
-    WTF_LOG_ERROR("reshape (%d, %d)", width, height);
+    WEBGL_LOG("reshape (%d, %d)", width, height);
+    mDrawingBufferWidth = width;
+    mDrawingBufferHeight = height;
+    Platform::current()->setCanvasSize(width, height);
 
 #if 0
     // This is an approximation because at WebGLRenderingContextBase level we don't
@@ -1417,7 +1424,7 @@ void WebGLRenderingContextBase::reshape(int width, int height)
         height = std::max(1, static_cast<int>(height * scaleFactor));
     }
 
-    WTF_LOG_ERROR("reshape then resetDrawingbuFfer (%d, %d)", width, height);
+    WEBGL_LOG("reshape then resetDrawingbuFfer (%d, %d)", width, height);
 
     // We don't have to mark the canvas as dirty, since the newly created image buffer will also start off
     // clear (and this matches what reshape will do).
@@ -5187,7 +5194,7 @@ void WebGLRenderingContextBase::viewport(GLint x, GLint y, GLsizei width, GLsize
         return;
     if (!validateSize("viewport", width, height))
         return;
-    WTF_LOG_ERROR("viewport (%d, %d, %d, %d)", x, y, width, height);
+    //WEBGL_LOG("viewport (%d, %d, %d, %d)", x, y, width, height);
     webContext()->viewport(x, y, width, height);
 }
 
@@ -5277,7 +5284,7 @@ void WebGLRenderingContextBase::forceRestoreContext()
 
 WebLayer* WebGLRenderingContextBase::platformLayer() const
 {
-    WTF_LOG_ERROR("platformLayer");
+    WEBGL_LOG("platformLayer");
     return nullptr;
     //return isContextLost() ? 0 : drawingBuffer()->platformLayer();
 }
@@ -6791,7 +6798,7 @@ void WebGLRenderingContextBase::enableOrDisable(GLenum capability, bool enable)
 
 IntSize WebGLRenderingContextBase::clampedCanvasSize()
 {
-    WTF_LOG_ERROR("clampedCanvasSize: canvas: %d %d maxViewport: %d %d", canvas()->width(), canvas()->height(),
+    WEBGL_LOG("clampedCanvasSize: canvas: %d %d maxViewport: %d %d", canvas()->width(), canvas()->height(),
     m_maxViewportDims[0],m_maxViewportDims[1]);
     return IntSize(clamp(canvas()->width(), 1, m_maxViewportDims[0]),
         clamp(canvas()->height(), 1, m_maxViewportDims[1]));

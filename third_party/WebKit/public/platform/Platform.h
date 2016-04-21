@@ -603,6 +603,7 @@ public:
     // Create a WebGraphicsContext3D for rendering directly to onscreen surface.
     virtual WebGraphicsContext3D* createOnscreenGraphicsContext3D(const WebGraphicsContext3D::Attributes&) { return nullptr; }
     virtual void swapBufferOnscreenContext3D() {}
+    virtual void setCanvasSize(int width, int height) {}
 
     // Returns a newly allocated and initialized offscreen context provider. The provider may return a null
     // graphics context if GPU is not supported.

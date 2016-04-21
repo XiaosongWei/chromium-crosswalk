@@ -159,6 +159,7 @@ class CONTENT_EXPORT RendererBlinkPlatformImpl : public BlinkPlatformImpl {
   blink::WebGraphicsContext3D* createOnscreenGraphicsContext3D(
 	  const blink::WebGraphicsContext3D::Attributes& attributes) override;
   void swapBufferOnscreenContext3D() override;
+  void setCanvasSize(int width, int height) override;
 
   blink::WebGraphicsContext3DProvider*
   createSharedOffscreenGraphicsContext3DProvider() override;
