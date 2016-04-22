@@ -5198,6 +5198,9 @@ void Document::serviceScriptedAnimations(double monotonicAnimationStartTime)
     if (!m_scriptedAnimationController)
         return;
     m_scriptedAnimationController->serviceScriptedAnimations(monotonicAnimationStartTime);
+
+    // invoke swapBuffers to present a frame after FrameRequestCallback is fired
+    Platform::current()->swapBufferOnscreenContext3D();
 }
 
 ScriptedIdleTaskController& Document::ensureScriptedIdleTaskController()

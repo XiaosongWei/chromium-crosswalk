@@ -2331,8 +2331,6 @@ void WebGLRenderingContextBase::drawArrays(GLenum mode, GLint first, GLsizei cou
     webContext()->drawArrays(mode, first, count);
     handleTextureCompleteness("drawArrays", false);
     markContextChanged(CanvasChanged);
-    // TODO: eglSwapBuffers shall be called elsewhere
-    Platform::current()->swapBufferOnscreenContext3D();
 }
 
 void WebGLRenderingContextBase::drawElements(GLenum mode, GLsizei count, GLenum type, long long offset)
@@ -2346,8 +2344,6 @@ void WebGLRenderingContextBase::drawElements(GLenum mode, GLsizei count, GLenum 
     webContext()->drawElements(mode, count, type, static_cast<GLintptr>(offset));
     handleTextureCompleteness("drawElements", false);
     markContextChanged(CanvasChanged);
-    // TODO: eglSwapBuffers shall be called elsewhere
-    Platform::current()->swapBufferOnscreenContext3D();
 }
 
 void WebGLRenderingContextBase::drawArraysInstancedANGLE(GLenum mode, GLint first, GLsizei count, GLsizei primcount)
