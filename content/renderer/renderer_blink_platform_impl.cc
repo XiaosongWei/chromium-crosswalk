@@ -1124,7 +1124,8 @@ bool InitializeContext(ANativeWindow* window)
         EGL_BLUE_SIZE, 8,
         EGL_GREEN_SIZE, 8,
         EGL_RED_SIZE, 8,
-        EGL_DEPTH_SIZE, 16,
+        EGL_DEPTH_SIZE, 16, // 24bit?
+        EGL_STENCIL_SIZE, 8, //TODO: configurable?
         EGL_NONE
     };
     const EGLint kContextAttributes[] = {
@@ -1211,6 +1212,7 @@ RendererBlinkPlatformImpl::createOnscreenGraphicsContext3D(
          InitializeContext(gWebgl_ANativeWindow);
          gEGLContextInitialized = true;
       }
+      LOG(ERROR) << "WebGraphicsContext3D attr: alpha- " << attributes.alpha << " depth- " << attributes.depth << " stencil- " << attributes.stencil;
       blink::XWalkWebGraphicsContext3DDirect* context = new blink::XWalkWebGraphicsContext3DDirect();
       context->setImplementation( new XWalkWebGraphicsContext3DDirectImpl());
       return context;

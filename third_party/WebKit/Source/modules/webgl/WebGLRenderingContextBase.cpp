@@ -6841,6 +6841,10 @@ void WebGLRenderingContextBase::setFramebuffer(GLenum target, WebGLFramebuffer* 
     if (!buffer) {
         // Instead of binding fb 0, bind the drawing buffer.
         //drawingBuffer()->bind(target);
+
+        // added by Xiaosong
+        WEBGL_LOG("unbind framebuffer");
+        webContext()->bindFramebuffer(target, 0);
     } else {
         webContext()->bindFramebuffer(target, buffer->object());
     }
