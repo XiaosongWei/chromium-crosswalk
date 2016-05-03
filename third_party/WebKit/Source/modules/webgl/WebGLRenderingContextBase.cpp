@@ -990,6 +990,8 @@ WebGLRenderingContextBase::WebGLRenderingContextBase(HTMLCanvasElement* passedCa
     drawingBuffer()->bind(GL_FRAMEBUFFER);
     setupFlags();
 #endif
+    // added by Xiaosong
+    m_isDepthStencilSupported = extensionsUtil()->isExtensionEnabled("GL_OES_packed_depth_stencil");
 
 #define ADD_VALUES_TO_SET(set, values) \
     for (size_t i = 0; i < arraysize(values); ++i) {   \
@@ -2725,7 +2727,6 @@ ScriptValue WebGLRenderingContextBase::getExtension(ScriptState* scriptState, co
     WebGLExtension* extension = nullptr;
     bool linkContextToExtension = false;
 
-#if 0
     if (!isContextLost()) {
         for (size_t i = 0; i < m_extensions.size(); ++i) {
             ExtensionTracker* tracker = m_extensions[i];
@@ -2743,7 +2744,7 @@ ScriptValue WebGLRenderingContextBase::getExtension(ScriptState* scriptState, co
             }
         }
     }
-#endif
+
     v8::Local<v8::Value> wrappedExtension = toV8(extension, scriptState->context()->Global(), scriptState->isolate());
 
     if (linkContextToExtension) {
@@ -6843,7 +6844,6 @@ void WebGLRenderingContextBase::setFramebuffer(GLenum target, WebGLFramebuffer* 
         //drawingBuffer()->bind(target);
 
         // added by Xiaosong
-        WEBGL_LOG("unbind framebuffer");
         webContext()->bindFramebuffer(target, 0);
     } else {
         webContext()->bindFramebuffer(target, buffer->object());

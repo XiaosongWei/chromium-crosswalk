@@ -74,7 +74,7 @@ PassOwnPtrWillBeRawPtr<CanvasRenderingContext> WebGLRenderingContext::Factory::c
     OwnPtr<WebGraphicsContext3D> context(createWebGraphicsContext3D(canvas, attributes, 1));
     if (!context)
         return nullptr;
-#if 0 // Xiaosong: remove extension for rendering direct to onscreen surface
+
     OwnPtr<Extensions3DUtil> extensionsUtil = Extensions3DUtil::create(context.get());
     if (!extensionsUtil)
         return nullptr;
@@ -82,7 +82,7 @@ PassOwnPtrWillBeRawPtr<CanvasRenderingContext> WebGLRenderingContext::Factory::c
         String contextLabel(String::format("WebGLRenderingContext-%p", context.get()));
         context->pushGroupMarkerEXT(contextLabel.ascii().data());
     }
-#endif
+
     WEBGL_LOG("create WebGLRenderingContext");
     OwnPtrWillBeRawPtr<WebGLRenderingContext> renderingContext = adoptPtrWillBeNoop(new WebGLRenderingContext(canvas, context.release(), attributes));
 
@@ -94,9 +94,7 @@ PassOwnPtrWillBeRawPtr<CanvasRenderingContext> WebGLRenderingContext::Factory::c
 #endif
     WEBGL_LOG("initializeNewContext");
     renderingContext->initializeNewContext();
-
-    // Xiaosong:
-    //renderingContext->registerContextExtensions();
+    renderingContext->registerContextExtensions();
 
     return renderingContext.release();
 }
