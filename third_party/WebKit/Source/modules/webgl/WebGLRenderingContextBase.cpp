@@ -992,6 +992,7 @@ WebGLRenderingContextBase::WebGLRenderingContextBase(HTMLCanvasElement* passedCa
 #endif
     // added by Xiaosong
     m_isDepthStencilSupported = extensionsUtil()->isExtensionEnabled("GL_OES_packed_depth_stencil");
+    WEBGL_LOG("m_isDepthStencilSupported %d", m_isDepthStencilSupported);
 
 #define ADD_VALUES_TO_SET(set, values) \
     for (size_t i = 0; i < arraysize(values); ++i) {   \
@@ -3712,7 +3713,7 @@ void WebGLRenderingContextBase::pixelStorei(GLenum pname, GLint param)
         if (param == 1 || param == 2 || param == 4 || param == 8) {
             if (pname == GL_PACK_ALIGNMENT) {
                 m_packAlignment = param;
-                drawingBuffer()->setPackAlignment(param);
+                //drawingBuffer()->setPackAlignment(param);
             } else { // GL_UNPACK_ALIGNMENT:
                 m_unpackAlignment = param;
             }

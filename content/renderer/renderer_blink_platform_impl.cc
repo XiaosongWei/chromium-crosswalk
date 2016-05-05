@@ -1088,6 +1088,8 @@ RendererBlinkPlatformImpl::createOffscreenGraphicsContext3D(
 
 static ANativeWindow* gWebgl_ANativeWindow = nullptr;
 static bool gEGLContextInitialized = false;
+static base::TimeTicks gLastSwapTime;
+static uint64_t gFrameCount;
 
 void RendererBlinkPlatformImpl::setWebGLSurface(ANativeWindow* surface) {
   LOG(ERROR) << __FUNCTION__;
@@ -1212,6 +1214,8 @@ RendererBlinkPlatformImpl::createOnscreenGraphicsContext3D(
          InitializeContext(gWebgl_ANativeWindow);
          gEGLContextInitialized = true;
       }
+      gLastSwapTime = base::TimeTicks::Now();
+      gFrameCount = 0;
       LOG(ERROR) << "WebGraphicsContext3D attr: alpha- " << attributes.alpha << " depth- " << attributes.depth << " stencil- " << attributes.stencil;
       blink::XWalkWebGraphicsContext3DDirect* context = new blink::XWalkWebGraphicsContext3DDirect();
       context->setImplementation( new XWalkWebGraphicsContext3DDirectImpl());
@@ -1221,6 +1225,14 @@ RendererBlinkPlatformImpl::createOnscreenGraphicsContext3D(
 void RendererBlinkPlatformImpl::swapBufferOnscreenContext3D() {
   if (gEGLContextInitialized) {
      eglSwapBuffers(gDisplay, gSurface);
+  }
+  gFrameCount++;
+  base::TimeTicks now = base::TimeTicks::Now();
+  base::TimeDelta delta = now - gLastSwapTime;
+  if (delta >= base::TimeDelta::FromSeconds(1)) {
+    WEBGL_LOG(" WebGL FPS: %lld", gFrameCount/delta.InSeconds());
+    gLastSwapTime = now;
+    gFrameCount = 0;
   }
 }
 
