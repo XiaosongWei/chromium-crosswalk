@@ -1099,7 +1099,7 @@ void WebGLRenderingContextBase::initializeNewContext()
 
     m_vertexAttribValue.resize(m_maxVertexAttribs);
 
-    createFallbackBlackTextures1x1();
+    //createFallbackBlackTextures1x1();
 
     webContext()->viewport(0, 0, drawingBufferWidth(), drawingBufferHeight());
     webContext()->scissor(0, 0, drawingBufferWidth(), drawingBufferHeight());
@@ -2330,9 +2330,9 @@ void WebGLRenderingContextBase::drawArrays(GLenum mode, GLint first, GLsizei cou
 
     //clearIfComposited();
 
-    handleTextureCompleteness("drawArrays", true);
+    //handleTextureCompleteness("drawArrays", true);
     webContext()->drawArrays(mode, first, count);
-    handleTextureCompleteness("drawArrays", false);
+    //handleTextureCompleteness("drawArrays", false);
     markContextChanged(CanvasChanged);
 }
 
@@ -2343,9 +2343,9 @@ void WebGLRenderingContextBase::drawElements(GLenum mode, GLsizei count, GLenum 
 
     //clearIfComposited();
 
-    handleTextureCompleteness("drawElements", true);
+    //handleTextureCompleteness("drawElements", true);
     webContext()->drawElements(mode, count, type, static_cast<GLintptr>(offset));
-    handleTextureCompleteness("drawElements", false);
+    //handleTextureCompleteness("drawElements", false);
     markContextChanged(CanvasChanged);
 }
 

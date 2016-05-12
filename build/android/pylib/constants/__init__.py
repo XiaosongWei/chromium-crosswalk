@@ -28,6 +28,18 @@ PackageInfo = collections.namedtuple('PackageInfo',
      'test_package'])
 
 PACKAGE_INFO = {
+    'xwalk_webgl': PackageInfo(
+        'org.xwalk.webgldemo',
+        'org.xwalk.webgldemo.MainActivity',
+        '/data/local/xwalk-command-line',
+        None,
+        None),
+    'xwalk_demo': PackageInfo(
+        'org.xwalk.xwalkdemo',
+        'org.xwalk.xwalkdemo.MainActivity',
+        '/data/local/xwalk-command-line',
+        None,
+        None),
     'chrome_document': PackageInfo(
         'com.google.android.apps.chrome.document',
         'com.google.android.apps.chrome.document.ChromeLauncherActivity',
