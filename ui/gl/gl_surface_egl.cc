@@ -279,6 +279,7 @@ bool GLSurfaceEGL::InitializeOneOff() {
     EGL_BLUE_SIZE, 8,
     EGL_GREEN_SIZE, 8,
     EGL_RED_SIZE, 8,
+    EGL_DEPTH_SIZE, 24, // Enabled Depth buffer by default for WebGL direct render to onscreen surface
     EGL_RENDERABLE_TYPE, renderable_type,
     EGL_SURFACE_TYPE, EGL_WINDOW_BIT | EGL_PBUFFER_BIT,
     EGL_NONE
@@ -457,6 +458,7 @@ NativeViewGLSurfaceEGL::NativeViewGLSurfaceEGL(EGLNativeWindowType window)
   if (window)
     ANativeWindow_acquire(window);
 #endif
+   LOG(ERROR) << __FUNCTION__ << ":" << __LINE__ << " creating " << this << " with window: " << window_;
 
 #if defined(OS_WIN)
   vsync_override_ = false;
@@ -465,6 +467,8 @@ NativeViewGLSurfaceEGL::NativeViewGLSurfaceEGL(EGLNativeWindowType window)
   if (GetClientRect(window_, &windowRect))
     size_ = gfx::Rect(windowRect).size();
 #endif
+  last_swap_timestamp_ = base::TimeTicks::Now();
+  frame_count_ = 0;
 }
 
 bool NativeViewGLSurfaceEGL::Initialize() {
@@ -524,6 +528,7 @@ bool NativeViewGLSurfaceEGL::Initialize(
 
 void NativeViewGLSurfaceEGL::Destroy() {
   if (surface_) {
+    LOG(ERROR) << __FUNCTION__ << ":" << __LINE__ << " eglDestroySurface " << this;
     if (!eglDestroySurface(GetDisplay(), surface_)) {
       LOG(ERROR) << "eglDestroySurface failed with error "
                  << GetLastEGLErrorString();
@@ -534,7 +539,7 @@ void NativeViewGLSurfaceEGL::Destroy() {
 
 EGLConfig NativeViewGLSurfaceEGL::GetConfig() {
 #if !defined(USE_X11)
-  return g_config;
+  return g_config; // TODO: to differentiate EGL config for WebGL and Browser compositor
 #else
   if (!config_) {
     // Get a config compatible with the window
@@ -653,10 +658,17 @@ gfx::SwapResult NativeViewGLSurfaceEGL::SwapBuffers() {
   }
 #endif
 
+  frame_count_++;
   if (!eglSwapBuffers(GetDisplay(), surface_)) {
     DVLOG(1) << "eglSwapBuffers failed with error "
              << GetLastEGLErrorString();
     return gfx::SwapResult::SWAP_FAILED;
+  }
+  base::TimeDelta delta = base::TimeTicks::Now() - last_swap_timestamp_;
+  if (delta >= base::TimeDelta::FromSeconds(1)) {
+    LOG(ERROR) << "SwapBuffers FPS: " << frame_count_/delta.InSeconds() << " surface:" << this;
+    last_swap_timestamp_ = base::TimeTicks::Now();
+    frame_count_ = 0;
   }
 
   return gfx::SwapResult::SWAP_ACK;
@@ -740,6 +752,7 @@ void NativeViewGLSurfaceEGL::OnSetSwapInterval(int interval) {
 }
 
 NativeViewGLSurfaceEGL::~NativeViewGLSurfaceEGL() {
+  LOG(ERROR) << __FUNCTION__ << ":" << __LINE__ << " destroy " << this;
   Destroy();
 #if defined(OS_ANDROID)
   if (window_)

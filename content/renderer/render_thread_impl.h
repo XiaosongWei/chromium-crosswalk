@@ -451,6 +451,8 @@ class CONTENT_EXPORT RenderThreadImpl
     const scoped_refptr<base::SingleThreadTaskRunner>& resource_task_queue);
 
  private:
+  struct CreateRequest;
+
   // ChildThread
   bool OnControlMessageReceived(const IPC::Message& msg) override;
   void OnProcessBackgrounded(bool backgrounded) override;
@@ -506,6 +508,13 @@ class CONTENT_EXPORT RenderThreadImpl
   void ReleaseFreeMemory();
 
   scoped_ptr<WebGraphicsContext3DCommandBufferImpl> CreateOffscreenContext3d();
+
+  void CreateViewCommandBufferOnIO(
+      CreateRequest* request,
+      int32 surface_id,
+      const GPUCreateCommandBufferConfig& init_params);
+  static void CommandBufferCreatedOnIO(CreateRequest* request,
+                                       CreateCommandBufferResult result);
 
   // These objects live solely on the render thread.
   scoped_ptr<AppCacheDispatcher> appcache_dispatcher_;

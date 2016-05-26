@@ -118,6 +118,8 @@ class GL_EXPORT NativeViewGLSurfaceEGL : public GLSurfaceEGL {
   static unsigned int swaps_this_generation_;
   static unsigned int last_multiswap_generation_;
 #endif
+  base::TimeTicks last_swap_timestamp_;
+  int frame_count_;
 
   DISALLOW_COPY_AND_ASSIGN(NativeViewGLSurfaceEGL);
 };

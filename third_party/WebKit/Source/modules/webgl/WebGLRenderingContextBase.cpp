@@ -972,6 +972,7 @@ WebGLRenderingContextBase::WebGLRenderingContextBase(HTMLCanvasElement* passedCa
 
     m_maxViewportDims[0] = m_maxViewportDims[1] = 0;
     m_context->getIntegerv(GL_MAX_VIEWPORT_DIMS, m_maxViewportDims);
+    WEBGL_LOG("GL_MAX_VIEWPORT_DIMS %d x %d", m_maxViewportDims[0], m_maxViewportDims[1]);
 
     // added by Xiaosong
     mDrawingBufferWidth = clampedCanvasSize().width();
@@ -6799,8 +6800,10 @@ IntSize WebGLRenderingContextBase::clampedCanvasSize()
 {
     WEBGL_LOG("clampedCanvasSize: canvas: %d %d maxViewport: %d %d", canvas()->width(), canvas()->height(),
     m_maxViewportDims[0],m_maxViewportDims[1]);
-    return IntSize(clamp(canvas()->width(), 1, m_maxViewportDims[0]),
-        clamp(canvas()->height(), 1, m_maxViewportDims[1]));
+    GLint maxWidth = m_maxViewportDims[0] ? m_maxViewportDims[0] : canvas()->width();
+    GLint maxHeight = m_maxViewportDims[1] ? m_maxViewportDims[1] : canvas()->height();
+    return IntSize(clamp(canvas()->width(), 1, maxWidth),
+        clamp(canvas()->height(), 1, maxHeight));
 }
 
 GLint WebGLRenderingContextBase::maxDrawBuffers()

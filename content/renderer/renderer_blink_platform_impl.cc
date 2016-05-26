@@ -140,6 +140,10 @@
 #include "xwalk/runtime/renderer/android/xwalk_web_graphics_context3d_direct.h"
 #include "xwalk/runtime/renderer/android/xwalk_web_graphics_context3d_direct_impl.h"
 
+#include "content/browser/gpu/gpu_surface_tracker.h"
+#include "gpu/command_buffer/client/context_support.h"
+
+
 using blink::Platform;
 using blink::WebAudioDevice;
 using blink::WebBlobRegistry;
@@ -1090,10 +1094,21 @@ static ANativeWindow* gWebgl_ANativeWindow = nullptr;
 static bool gEGLContextInitialized = false;
 static base::TimeTicks gLastSwapTime;
 static uint64_t gFrameCount;
-
+static int gWebGLSurfaceID = 0;
+static WebGraphicsContext3DCommandBufferImpl* gCurrentContext = NULL;
 void RendererBlinkPlatformImpl::setWebGLSurface(ANativeWindow* surface) {
   LOG(ERROR) << __FUNCTION__;
   gWebgl_ANativeWindow = surface;
+
+  //
+  GpuSurfaceTracker* tracker = GpuSurfaceTracker::Get();
+  ANativeWindow_acquire(surface);
+  gWebGLSurfaceID = tracker->AddSurfaceForNativeWidget(surface);
+  tracker->SetSurfaceHandle(
+      gWebGLSurfaceID,
+      gfx::GLSurfaceHandle(gWebGLSurfaceID, gfx::NATIVE_DIRECT));
+  ANativeWindow_release(surface);
+  WEBGL_LOG("setWebGLSurface id: %d", gWebGLSurfaceID);
 }
 
 static EGLDisplay gDisplay;
@@ -1203,6 +1218,7 @@ bool InitializeContext(ANativeWindow* window)
     return true;
 }
 
+#if 0
 blink::WebGraphicsContext3D*
 RendererBlinkPlatformImpl::createOnscreenGraphicsContext3D(
       const blink::WebGraphicsContext3D::Attributes& attributes) {
@@ -1221,16 +1237,58 @@ RendererBlinkPlatformImpl::createOnscreenGraphicsContext3D(
       context->setImplementation( new XWalkWebGraphicsContext3DDirectImpl());
       return context;
 }
+#else
+blink::WebGraphicsContext3D*
+RendererBlinkPlatformImpl::createOnscreenGraphicsContext3D(
+    const blink::WebGraphicsContext3D::Attributes& attributes) {
+  scoped_refptr<GpuChannelHost> gpu_channel_host(
+      RenderThreadImpl::current()->EstablishGpuChannelSync(
+          CAUSE_FOR_GPU_LAUNCH_WEBGRAPHICSCONTEXT3DCOMMANDBUFFERIMPL_INITIALIZE));
 
+  WebGraphicsContext3DCommandBufferImpl::SharedMemoryLimits limits;
+  bool lose_context_when_out_of_memory = false;
+  WEBGL_LOG("createOnscreenGraphicsContext3D alpha: %d depth: %d stencil: %d",
+      attributes.alpha, attributes.depth, attributes.stencil);
+
+  scoped_ptr<WebGraphicsContext3DCommandBufferImpl> context(
+      new WebGraphicsContext3DCommandBufferImpl(gWebGLSurfaceID,
+                                                //GURL(attributes.topDocumentURL),
+                                                GURL("crosswalk://webgl.onscreen"),
+                                                gpu_channel_host.get(),
+                                                attributes,
+                                                lose_context_when_out_of_memory,
+                                                limits,
+                                                NULL));
+
+  // Most likely the GPU process exited and the attempt to reconnect to it
+  // failed. Need to try to restore the context again later.
+  if (!context || !context->InitializeOnCurrentThread()) {
+      return NULL;
+  }
+  gCurrentContext = context.release();
+  return gCurrentContext;
+  //return context.release();
+
+}
+#endif
 void RendererBlinkPlatformImpl::swapBufferOnscreenContext3D() {
+  TRACE_EVENT0("gpu", "WebGL::eglSwapBuffers");
+  //WEBGL_LOG("WebGL::eglSwapBuffers");
+  if(gEGLContextInitialized)WEBGL_LOG("Direct render to onscreen surface");
+
+#if 0
   if (gEGLContextInitialized) {
      eglSwapBuffers(gDisplay, gSurface);
   }
+#else
+if(gCurrentContext)gCurrentContext->GetContextSupport()->Swap();
+
+#endif
   gFrameCount++;
   base::TimeTicks now = base::TimeTicks::Now();
   base::TimeDelta delta = now - gLastSwapTime;
   if (delta >= base::TimeDelta::FromSeconds(1)) {
-    WEBGL_LOG(" WebGL FPS: %lld", gFrameCount/delta.InSeconds());
+    //WEBGL_LOG(" WebGL FPS: %lld", gFrameCount/delta.InSeconds());
     gLastSwapTime = now;
     gFrameCount = 0;
   }
@@ -1240,12 +1298,20 @@ void RendererBlinkPlatformImpl::setCanvasSize(int width, int height) {
   gBufferWidth = width;
   gBufferHeight = height;
   LOG(ERROR) << "Canvas/Buffer " << width << " " << height;
+#if 0
   if (gEGLContextInitialized) {
     ANativeWindow_setBuffersGeometry(gWebgl_ANativeWindow, gBufferWidth, gBufferHeight, gBufferFormat);
   } else {
      InitializeContext(gWebgl_ANativeWindow);
      gEGLContextInitialized = true;
   }
+#else
+  if (gWebgl_ANativeWindow) {
+    LOG(ERROR) << " update ANativeWindow buffer geometry";
+    ANativeWindow_setBuffersGeometry(gWebgl_ANativeWindow, gBufferWidth, gBufferHeight,
+        ANativeWindow_getFormat(gWebgl_ANativeWindow));
+  }
+#endif
 }
 
 

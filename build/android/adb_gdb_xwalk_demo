@@ -11,6 +11,6 @@ PROGDIR=$(dirname "$0")
 export ADB_GDB_PROGNAME=$(basename "$0")
 export ADB_GDB_ACTIVITY=.MainActivity
 "$PROGDIR"/adb_gdb \
-    --program-name=XWalkDemo \
-    --package-name=org.xwalk.xwalkdemo \
+    --program-name=XWalkWebGLDemo \
+    --package-name=org.xwalk.webgldemo \
     "$@"

@@ -125,6 +125,7 @@ class GpuCommandBufferStub
 
   // Identifies the stream for this command buffer.
   int32 stream_id() const { return stream_id_; }
+  bool is_webgl_onscreen() { return webgl_onscreen_; }
 
   gfx::GpuPreference gpu_preference() { return gpu_preference_; }
 
@@ -302,6 +303,8 @@ class GpuCommandBufferStub
   size_t total_gpu_memory_;
   scoped_ptr<WaitForCommandState> wait_for_token_;
   scoped_ptr<WaitForCommandState> wait_for_get_offset_;
+
+  bool webgl_onscreen_;
 
   DISALLOW_COPY_AND_ASSIGN(GpuCommandBufferStub);
 };

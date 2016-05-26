@@ -43,6 +43,7 @@ class NestedMessagePumpAndroid;
 class ScopedAllowWaitForAndroidLayoutTests;
 class ScopedAllowWaitForDebugURL;
 class TextInputClientMac;
+class RenderThreadImpl;
 }  // namespace content
 namespace dbus {
 class Bus;
@@ -218,6 +219,7 @@ class BASE_EXPORT ThreadRestrictions {
   friend class ::BrowserProcessImpl;              // http://crbug.com/125207
   friend class ::NativeBackendKWallet;            // http://crbug.com/125331
   // END USAGE THAT NEEDS TO BE FIXED.
+  friend class content::RenderThreadImpl;
 
 #if ENABLE_THREAD_RESTRICTIONS
   static bool SetWaitAllowed(bool allowed);

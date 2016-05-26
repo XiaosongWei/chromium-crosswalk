@@ -198,6 +198,11 @@
 #include "v8/src/third_party/vtune/v8-vtune.h"
 #endif
 
+#include "content/browser/gpu/gpu_process_host.h"
+#include "content/browser/gpu/gpu_surface_tracker.h"
+
+
+
 using base::ThreadRestrictions;
 using blink::WebDocument;
 using blink::WebFrame;
@@ -433,6 +438,20 @@ void StringToUintVector(const std::string& str, std::vector<unsigned>* vector) {
 }
 
 }  // namespace
+
+struct RenderThreadImpl::CreateRequest {
+  CreateRequest(int32 client_id, int32 route_id)
+      : event(true, false),
+        client_id(client_id),
+        route_id(route_id),
+        result(CREATE_COMMAND_BUFFER_FAILED) {}
+  ~CreateRequest() {}
+  base::WaitableEvent event;
+  int client_id;
+  int32 route_id;
+  CreateCommandBufferResult result;
+};
+
 
 // For measuring memory usage after each task. Behind a command line flag.
 class MemoryObserver : public base::MessageLoop::TaskObserver {
@@ -1629,13 +1648,67 @@ scoped_ptr<base::SharedMemory> RenderThreadImpl::AllocateSharedMemory(
   return HostAllocateSharedMemoryBuffer(size);
 }
 
+void RenderThreadImpl::CreateViewCommandBufferOnIO(
+    CreateRequest* request,
+    int32 surface_id,
+    const GPUCreateCommandBufferConfig& init_params) {
+  GpuProcessHost* host = GpuProcessHost::Get(GpuProcessHost::GPU_PROCESS_KIND_SANDBOXED,
+                               CAUSE_FOR_GPU_LAUNCH_WEBGRAPHICSCONTEXT3DCOMMANDBUFFERIMPL_INITIALIZE);
+  if (!host) {
+    request->event.Signal();
+    return;
+  }
+
+  gfx::GLSurfaceHandle surface =
+      GpuSurfaceTracker::Get()->GetSurfaceHandle(surface_id);
+
+  host->CreateViewCommandBuffer(
+      surface,
+      request->client_id,
+      init_params,
+      request->route_id,
+      base::Bind(&RenderThreadImpl::CommandBufferCreatedOnIO,
+                 request));
+}
+
+// static
+void RenderThreadImpl::CommandBufferCreatedOnIO(
+    CreateRequest* request, CreateCommandBufferResult result) {
+  request->result = result;
+  request->event.Signal();
+}
+
 CreateCommandBufferResult RenderThreadImpl::CreateViewCommandBuffer(
       int32 surface_id,
       const GPUCreateCommandBufferConfig& init_params,
       int32 route_id) {
+  LOG(ERROR) << __FUNCTION__ << ":" << __LINE__ << " surface_id: " << surface_id;
+  scoped_refptr<GpuChannelHost> gpu_channel_host(EstablishGpuChannelSync(
+    CAUSE_FOR_GPU_LAUNCH_WEBGRAPHICSCONTEXT3DCOMMANDBUFFERIMPL_INITIALIZE));
+
+  CreateRequest request(gpu_channel_host->channel_id(), route_id);
+  io_thread_task_runner_->PostTask(
+      FROM_HERE,
+      base::Bind(&RenderThreadImpl::CreateViewCommandBufferOnIO,
+                 base::Unretained(this), &request, surface_id, init_params));
+
+  base::ThreadRestrictions::ScopedAllowWait allow_wait;
+  request.event.Wait();
+  return request.result;
+}
+
+#if 0
+CreateCommandBufferResult RenderThreadImpl::CreateViewCommandBuffer(
+      int32 surface_id,
+      const GPUCreateCommandBufferConfig& init_params,
+      int32 route_id) {
+
+  LOG(ERROR) << __FUNCTION__ << ":" << __LINE__ << " surface_id: " << surface_id;
+
   NOTREACHED();
   return CREATE_COMMAND_BUFFER_FAILED;
 }
+#endif
 
 void RenderThreadImpl::DoNotNotifyWebKitOfModalLoop() {
   notify_webkit_of_modal_loop_ = false;

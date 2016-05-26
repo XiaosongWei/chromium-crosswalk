@@ -202,9 +202,11 @@ void GpuChannelManager::OnCreateViewCommandBuffer(
     const GPUCreateCommandBufferConfig& init_params,
     int32 route_id) {
   CreateCommandBufferResult result = CREATE_COMMAND_BUFFER_FAILED;
-
+  LOG(ERROR) << __FUNCTION__ << ":" << __LINE__ << " onCreateViewCommandBuffer client_id: " << client_id
+      << " route_id: " << route_id;
   auto it = gpu_channels_.find(client_id);
   if (it != gpu_channels_.end()) {
+    LOG(ERROR) << __FUNCTION__ << ":" << __LINE__ << " CreateViewCommandBuffer on GPUChannel";
     result = it->second->CreateViewCommandBuffer(window, init_params, route_id);
   }
 

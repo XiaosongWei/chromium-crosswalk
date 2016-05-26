@@ -214,6 +214,11 @@ GpuCommandBufferStub::GpuCommandBufferStub(
   active_url_hash_ = base::Hash(active_url.possibly_invalid_spec());
   FastSetActiveURL(active_url_, active_url_hash_);
 
+  if (active_url_ == GURL("crosswalk://webgl.onscreen")) {
+    LOG(ERROR) << "crosswalk://webgl.onscreen " << this;
+    webgl_onscreen_ = true;
+  }
+
   gpu::gles2::ContextCreationAttribHelper attrib_parser;
   attrib_parser.Parse(requested_attribs_);
 
@@ -241,10 +246,12 @@ GpuCommandBufferStub::GpuCommandBufferStub(
 
   use_virtualized_gl_context_ |=
       context_group_->feature_info()->workarounds().use_virtualized_gl_contexts;
+  LOG(ERROR) << __FUNCTION__ << ":" << __LINE__ << " context_group_->feature_info()->workarounds().use_virtualized_gl_contexts: " << context_group_->feature_info()->workarounds().use_virtualized_gl_contexts;
 
   // MailboxManagerSync synchronization correctness currently depends on having
   // only a single context. See crbug.com/510243 for details.
   use_virtualized_gl_context_ |= mailbox_manager->UsesSync();
+  LOG(ERROR) << __FUNCTION__ << ":" << __LINE__ << " use_virtualized_gl_context_: " << use_virtualized_gl_context_;
 
   if (offscreen && initial_size_.IsEmpty()) {
     // If we're an offscreen surface with zero width and/or height, set to a
