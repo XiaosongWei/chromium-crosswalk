@@ -5218,6 +5218,7 @@ void WebGLRenderingContextBase::loseContextImpl(WebGLRenderingContextBase::LostC
 {
     if (isContextLost())
         return;
+    WEBGL_LOG("lostContextImpl");
 
     m_contextLostMode = mode;
     ASSERT(m_contextLostMode != NotLostContext);
@@ -5231,8 +5232,8 @@ void WebGLRenderingContextBase::loseContextImpl(WebGLRenderingContextBase::LostC
     }
 
     // Make absolutely sure we do not refer to an already-deleted texture or framebuffer.
-    drawingBuffer()->setTexture2DBinding(0);
-    drawingBuffer()->setFramebufferBinding(GL_FRAMEBUFFER, 0);
+    //drawingBuffer()->setTexture2DBinding(0);
+    //drawingBuffer()->setFramebufferBinding(GL_FRAMEBUFFER, 0);
 
     detachAndRemoveAllObjects();
 
