@@ -1,0 +1,6 @@
+[
+   NoInterfaceObject,
+]
+interface threeBlinkWrapper {
+
+};
