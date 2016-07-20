@@ -11,7 +11,7 @@ Matrix4* Matrix4::multiplyMatrices(Matrix4* a, Matrix4* b)
 
 #ifdef USE_NEON
 
-    float32x4_t* baseBV = (float32x4_t*) baseB;
+    float32x2_t* baseBV = (float32x2_t*) baseB;
     float32x4_t* baseAV = (float32x4_t*) baseA;
     float32x4_t* baseRV = (float32x4_t*) baseR;
 
@@ -20,33 +20,37 @@ Matrix4* Matrix4::multiplyMatrices(Matrix4* a, Matrix4* b)
     float32x4_t a3 = baseAV[2];
     float32x4_t a4 = baseAV[3];
 
-    float32x4_t b1 = baseBV[0];
-    float32x4_t b2 = baseBV[1]; 
-    float32x4_t b3 = baseBV[2];
-    float32x4_t b4 = baseBV[3];
+    float32x2_t b11 = baseBV[0];
+    float32x2_t b12 = baseBV[1];
+    float32x2_t b21 = baseBV[2];
+    float32x2_t b22 = baseBV[3]; 
+    float32x2_t b31 = baseBV[4];
+    float32x2_t b32 = baseBV[5];
+    float32x2_t b41 = baseBV[6];
+    float32x2_t b42 = baseBV[7];
 
     float32x4_t  r1, r2, r3, r4;
 
     //interlace instructions to use CPU pipeline
-    r1 = vmulq_laneq_f32(a1, b1, 0);
-    r2 = vmulq_laneq_f32(a1, b2, 0);
-    r3 = vmulq_laneq_f32(a1, b3, 0);
-    r4 = vmulq_laneq_f32(a1, b4, 0);
+    r1 = vmulq_lane_f32(a1, b11, 0);
+    r2 = vmulq_lane_f32(a1, b21, 0);
+    r3 = vmulq_lane_f32(a1, b31, 0);
+    r4 = vmulq_lane_f32(a1, b41, 0);
     
-    r1 = vmlaq_laneq_f32(r1, a2, b1, 1);
-    r2 = vmlaq_laneq_f32(r2, a2, b2, 1);
-    r3 = vmlaq_laneq_f32(r3, a2, b3, 1);
-    r4 = vmlaq_laneq_f32(r4, a2, b4, 1);
+    r1 = vmlaq_lane_f32(r1, a2, b11, 1);
+    r2 = vmlaq_lane_f32(r2, a2, b21, 1);
+    r3 = vmlaq_lane_f32(r3, a2, b31, 1);
+    r4 = vmlaq_lane_f32(r4, a2, b41, 1);
     
-    r1 = vmlaq_laneq_f32(r1, a3, b1, 2);
-    r2 = vmlaq_laneq_f32(r2, a3, b2, 2);
-    r3 = vmlaq_laneq_f32(r3, a3, b3, 2);
-    r4 = vmlaq_laneq_f32(r4, a3, b4, 2);
+    r1 = vmlaq_lane_f32(r1, a3, b12, 0);
+    r2 = vmlaq_lane_f32(r2, a3, b22, 0);
+    r3 = vmlaq_lane_f32(r3, a3, b32, 0);
+    r4 = vmlaq_lane_f32(r4, a3, b42, 0);
     
-    r1 = vmlaq_laneq_f32(r1, a4, b1, 3);
-    r2 = vmlaq_laneq_f32(r2, a4, b2, 3);
-    r3 = vmlaq_laneq_f32(r3, a4, b3, 3);
-    r4 = vmlaq_laneq_f32(r4, a4, b4, 3);
+    r1 = vmlaq_lane_f32(r1, a4, b12, 1);
+    r2 = vmlaq_lane_f32(r2, a4, b12, 1);
+    r3 = vmlaq_lane_f32(r3, a4, b32, 1);
+    r4 = vmlaq_lane_f32(r4, a4, b42, 1);
 
     baseRV[0] = r1;
     baseRV[1] = r2;

@@ -1,0 +1,10 @@
+{
+  "name": "ThreeBindingTest",
+  "version": "1.00.000",
+  "app": {
+    "launch":{
+      "local_path": "index.html"
+    }
+  }
+}
+
