@@ -2343,7 +2343,8 @@
           ['arm_neon==1', {
             'arm_fpu%': 'neon',
           }, {
-            'arm_fpu%': 'vfpv3-d16',
+            #'arm_fpu%': 'vfpv3-d16',
+            'arm_fpu%': 'neon',
           }],
           ['OS=="android"', {
             'arm_float_abi%': 'softfp',
